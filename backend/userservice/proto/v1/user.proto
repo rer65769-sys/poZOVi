@@ -1,0 +1,349 @@
+syntax = "proto3";
+
+package users;
+option go_package = "./gen;users";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+
+service UserService {
+    // CRUD-функции
+    rpc CreateUser(CreateUserRequest) returns (User) {
+        option (google.api.http) = {
+            post: "/api/v1/users"
+            body: "*"
+        };
+    }
+    
+    rpc GetUserById(GetUserByIdRequest) returns (User) {
+        option (google.api.http) = {
+            get: "/api/v1/users/{id}"
+        };
+    }
+    
+    rpc GetUserByEmail(GetUserByEmailRequest) returns (User) {
+        option (google.api.http) = {
+            get: "/api/v1/users/email/{email}"
+        };
+    }
+    
+    rpc UpdateUser(UpdateUserRequest) returns (User) {
+        option (google.api.http) = {
+            put: "/api/v1/users/{id}"
+            body: "*"
+        };
+    }
+    
+    rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/users/{id}"
+        };
+    }
+    
+    rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/users"
+        };
+    }
+    
+    // Аутентификация
+    rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/auth/login"
+            body: "*"
+        };
+    }
+    
+    rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/auth/validate"
+            body: "*"
+        };
+    }
+    
+    // Функции для бана
+    rpc BanUser(BanUserRequest) returns (User) {
+        option (google.api.http) = {
+            post: "/api/v1/users/{user_id}/ban"
+            body: "*"
+        };
+    }
+    
+    rpc UnbanUser(UnbanUserRequest) returns (User) {
+        option (google.api.http) = {
+            post: "/api/v1/users/{user_id}/unban"
+        };
+    }
+    
+    // Функции для подписок
+    rpc UpdateSubscription(UpdateSubscriptionRequest) returns (User) {
+        option (google.api.http) = {
+            put: "/api/v1/users/{user_id}/subscription"
+            body: "*"
+        };
+    }
+    
+    rpc CancelSubscription(CancelSubscriptionRequest) returns (User) {
+        option (google.api.http) = {
+            post: "/api/v1/users/{user_id}/subscription/cancel"
+        };
+    }
+    
+    // Health check
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/health"
+        };
+    }
+}
+
+// ===== Сообщения пользователя =====
+message User {
+    string id = 1;
+    string service_email = 2;
+    string name = 3;
+    string password = 4;  // Уже хешированный пароль
+    string email = 5;
+    string phone = 6;
+    UserStatus status = 7;
+    UserRole role = 8;
+    google.protobuf.Timestamp created_at = 9;
+    google.protobuf.Timestamp updated_at = 10;
+    google.protobuf.Timestamp last_login_at = 11;
+    BanInfo ban_info = 12;  // Информация о бане
+    SubscriptionInfo subscription = 13;  // Информация о подписке
+    map<string, string> metadata = 14;
+}
+
+// Информация о бане пользователя
+message BanInfo {
+    bool is_banned = 1;
+    google.protobuf.Timestamp banned_at = 2;
+    google.protobuf.Timestamp banned_until = 3;  // Для временного бана
+    string reason = 4;
+    string banned_by = 5;  // ID администратора, который забанил
+}
+
+// Информация о подписке пользователя
+message SubscriptionInfo {
+    SubscriptionStatus status = 1;
+    SubscriptionLevel level = 2;
+    google.protobuf.Timestamp subscription_start = 3;
+    google.protobuf.Timestamp subscription_end = 4;
+    google.protobuf.Timestamp trial_end = 5;  // Окончание триала
+    string subscription_id = 6;  // ID подписки во внешней системе (Stripe, etc)
+    string payment_method = 7;   // Способ оплаты
+    bool auto_renew = 8;         // Автопродление
+    google.protobuf.Timestamp next_billing_date = 9;  // Следующая дата списания
+    double amount = 10;          // Стоимость подписки
+    string currency = 11;        // Валюта (USD, EUR, RUB)
+    google.protobuf.Timestamp canceled_at = 12;  // Когда отменена
+    string cancel_reason = 13;   // Причина отмены
+    google.protobuf.Timestamp grace_period_end = 14;  // Окончание льготного периода
+    repeated string features = 15;  // Доступные фичи для этого уровня
+}
+
+// ===== Запросы =====
+message CreateUserRequest {
+    string name = 1;
+    string email = 2;
+    string password = 3;  // Уже хешированный пароль
+    optional string service_email = 4;
+    optional string phone = 5;
+    optional UserRole role = 6;
+    optional SubscriptionLevel initial_subscription_level = 7;  // Начальный уровень подписки
+}
+
+message GetUserByIdRequest {
+    string id = 1;
+}
+
+message GetUserByEmailRequest {
+    string email = 1;
+}
+
+message UpdateUserRequest {
+    string id = 1;
+    optional string name = 2;
+    optional string email = 3;
+    optional string password = 4;  // Уже хешированный пароль
+    optional string phone = 5;
+    optional string service_email = 6;
+    optional UserStatus status = 7;
+    optional UserRole role = 8;
+    map<string, string> metadata = 9;
+}
+
+message DeleteUserRequest {
+    string id = 1;
+}
+
+message ListUsersRequest {
+    int32 page = 1;
+    int32 page_size = 2;
+    optional string search = 3;
+    optional UserStatus status = 4;
+    optional UserRole role = 5;
+    optional bool is_banned = 6;  // Фильтр по банам
+    optional SubscriptionStatus subscription_status = 7;  // Фильтр по статусу подписки
+    optional SubscriptionLevel subscription_level = 8;    // Фильтр по уровню подписки
+    optional bool has_active_subscription = 9;  // Фильтр по активным подпискам
+}
+
+// ===== Аутентификация =====
+message AuthenticateRequest {
+    string email = 1;
+    string password = 2;  // Уже хешированный пароль
+}
+
+message AuthenticateResponse {
+    string token = 1;
+    User user = 2;
+    google.protobuf.Timestamp expires_at = 3;
+}
+
+message ValidateTokenRequest {
+    string token = 1;
+}
+
+message ValidateTokenResponse {
+    bool valid = 1;
+    User user = 2;
+}
+
+// ===== Бан-система =====
+message BanUserRequest {
+    string user_id = 1;
+    string reason = 2;
+    optional google.protobuf.Timestamp banned_until = 3;  // Для временного бана
+    string banned_by = 4;  // ID администратора
+}
+
+message UnbanUserRequest {
+    string user_id = 1;
+    string unbanned_by = 2;  // ID администратора
+}
+
+// ===== Подписки =====
+message UpdateSubscriptionRequest {
+    string user_id = 1;
+    SubscriptionLevel level = 2;
+    optional SubscriptionStatus status = 3;
+    optional google.protobuf.Timestamp subscription_end = 4;
+    optional google.protobuf.Timestamp trial_end = 5;
+    optional string subscription_id = 6;
+    optional string payment_method = 7;
+    optional bool auto_renew = 8;
+    optional double amount = 9;
+    optional string currency = 10;
+}
+
+message CancelSubscriptionRequest {
+    string user_id = 1;
+    optional string reason = 2;
+    bool immediate_cancellation = 3;  // Немедленная отмена или в конце периода
+}
+
+// ===== Ответы =====
+message ListUsersResponse {
+    repeated User users = 1;
+    int32 total = 2;
+    int32 page = 3;
+    int32 page_size = 4;
+    int32 total_pages = 5;
+}
+
+// ===== Health Check =====
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+    string status = 1;
+    string timestamp = 2;
+    string service = 3;
+    string version = 4;
+}
+
+// ===== Перечисления =====
+enum UserStatus {
+    USER_STATUS_UNSPECIFIED = 0;
+    USER_STATUS_ACTIVE = 1;
+    USER_STATUS_INACTIVE = 2;
+    USER_STATUS_SUSPENDED = 3;
+    USER_STATUS_PENDING = 4;
+    USER_STATUS_DELETED = 5;
+    USER_STATUS_BANNED_PERMANENTLY = 6;      // Перманентный бан
+    USER_STATUS_BANNED_TEMPORARILY = 7;      // Временный бан
+    USER_STATUS_BANNED_BY_ADMIN = 8;         // Бан администратором
+    USER_STATUS_BANNED_BY_SYSTEM = 9;        // Бан системой (автоматически)
+    USER_STATUS_BANNED_FOR_SPAM = 10;        // Бан за спам
+    USER_STATUS_BANNED_FOR_ABUSE = 11;       // Бан за нарушение правил
+    USER_STATUS_BANNED_FOR_FRAUD = 12;       // Бан за мошенничество
+}
+
+enum UserRole {
+    USER_ROLE_UNSPECIFIED = 0;
+    USER_ROLE_USER = 1;
+    USER_ROLE_MODERATOR = 2;
+    USER_ROLE_ADMIN = 3;
+    USER_ROLE_SUPER_ADMIN = 4;
+    USER_ROLE_BANNED_USER = 5;  // Отдельная роль для забаненных
+}
+
+// Статусы подписки
+enum SubscriptionStatus {
+    SUBSCRIPTION_STATUS_UNSPECIFIED = 0;
+    SUBSCRIPTION_STATUS_INACTIVE = 1;       // Нет подписки
+    SUBSCRIPTION_STATUS_TRIAL = 2;          // Пробный период
+    SUBSCRIPTION_STATUS_ACTIVE = 3;         // Активная подписка
+    SUBSCRIPTION_STATUS_PAST_DUE = 4;       // Просрочен платеж
+    SUBSCRIPTION_STATUS_CANCELED = 5;       // Отменена
+    SUBSCRIPTION_STATUS_EXPIRED = 6;        // Истекла
+    SUBSCRIPTION_STATUS_PAUSED = 7;         // Приостановлена
+    SUBSCRIPTION_STATUS_PENDING = 8;        // Ожидает активации
+    SUBSCRIPTION_STATUS_GRACE_PERIOD = 9;   // Льготный период
+    SUBSCRIPTION_STATUS_UPGRADING = 10;     // В процессе апгрейда
+    SUBSCRIPTION_STATUS_DOWNGRADING = 11;   // В процессе даунгрейда
+}
+
+// Уровни подписки
+enum SubscriptionLevel {
+    SUBSCRIPTION_LEVEL_UNSPECIFIED = 0;
+    SUBSCRIPTION_LEVEL_FREE = 1;            // Бесплатный
+    SUBSCRIPTION_LEVEL_BASIC = 2;           // Базовый
+    SUBSCRIPTION_LEVEL_STANDARD = 3;        // Стандартный
+    SUBSCRIPTION_LEVEL_PRO = 4;             // Профессиональный
+    SUBSCRIPTION_LEVEL_PREMIUM = 5;         // Премиум
+    SUBSCRIPTION_LEVEL_ENTERPRISE = 6;      // Корпоративный
+    SUBSCRIPTION_LEVEL_LIFETIME = 7;        // Пожизненный
+    SUBSCRIPTION_LEVEL_STARTER = 8;         // Начальный
+    SUBSCRIPTION_LEVEL_BUSINESS = 9;        // Бизнес
+    SUBSCRIPTION_LEVEL_ULTIMATE = 10;       // Максимальный
+}
+
+// ===== Дополнительные сообщения для отчетов =====
+message SubscriptionAnalytics {
+    int32 total_subscribers = 1;
+    int32 active_subscriptions = 2;
+    int32 trial_subscriptions = 3;
+    int32 canceled_subscriptions = 4;
+    int32 expired_subscriptions = 5;
+    map<string, int32> subscriptions_by_level = 6;  // Количество по уровням
+    double mrr = 7;  // Monthly Recurring Revenue
+    double arr = 8;  // Annual Recurring Revenue
+    double churn_rate = 9;  // Процент оттока
+    double conversion_rate = 10; // Конверсия из триала
+}
+
+message SubscriptionHistoryEntry {
+    string id = 1;
+    string user_id = 2;
+    SubscriptionLevel old_level = 3;
+    SubscriptionLevel new_level = 4;
+    SubscriptionStatus old_status = 5;
+    SubscriptionStatus new_status = 6;
+    string reason = 7;
+    string changed_by = 8;  // user_id или system
+    google.protobuf.Timestamp changed_at = 9;
+    map<string, string> metadata = 10;
+}
