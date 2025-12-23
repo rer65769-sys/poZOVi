@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package webrtc;
+
+service WebRTCService {
+    rpc Signal(stream SignalingMessage) 
+        returns (stream SignalingMessage);
+}
+
+message SignalingMessage {
+    uint32 session_id = 1;
+    oneof message {
+        SessionDescription description = 2;
+        IceCandidate ice_candidate = 3;
+        ConnectionState state = 4;
+        SignalingError = 5;
+    }
+}
+
+message SessionDescription {
+    enum Type {
+        UNSPEC = 0;
+        OFFER = 1;
+        ANSWER = 2;
+        PRANSWER = 3;
+        ROLLBACK = 4;
+    }
+
+    Type type = 1;
+    string sdp = 2;
+}
+
+message IceCandidate {
+    string candidate = 1;
+    string sdpMid = 2;
+    int32 sdpMLineIndex = 3;
+}
+
+message ConnectionState {
+    enum State {
+        NEW = 0;
+        CONNECTING = 1;
+        CONNECTED = 2;
+        DISCONNECTED = 3;
+        FAILED = 4;
+        CLOSED = 5;
+    }
+
+    State state = 1;
+}
+
+message SignalingError {
+    enum Code {
+        UNKNOWN = 0;
+        SESSION_NOT_FOUND = 1;
+        INVALID_MESSAGE = 2;
+        INVALID_STATE = 3;
+    }
+
+    Code code = 1;
+    String message = 2;
+}
