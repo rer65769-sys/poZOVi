@@ -32,7 +32,7 @@ public:
     PeerSession(uint32_t id, dispatch::Dispatcher& dispatcher, std::function<void()> callback) 
         : sessionId_(id), dispatcher_(dispatcher), onSessionTerminated(callback) {};
     ~PeerSession() { close(); };
-    void start(::rtc::Configuration config);
+    void start();
     void close();
     auto attachSignalStream(const std::shared_ptr<signaling::ISignalingSink>& signalStream) -> std::expected<void, AttachSignalStreamError>;
     auto setRemoteDescription(const signaling::Description& desc) -> std::expected<void, SetRemoteDescriptionError>;

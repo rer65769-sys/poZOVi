@@ -13,8 +13,10 @@ void RtcPeer::populateMidToIndexMap(const ::rtc::Description& desc) {
     }
 }
 
-void RtcPeer::start(::rtc::Configuration config) {
-    config_ = config;
+void RtcPeer::start() {
+    // TODO: add better configuration that can be chosen outside of RtcPeer and doesn't depend on libdatachannel
+    config_.iceServers.emplace_back("stun:stun.l.google.com:19302");
+
     peerConnection_ = std::make_unique<::rtc::PeerConnection>(config_);
 
     peerConnection_->onLocalDescription([this](::rtc::Description sdp) {

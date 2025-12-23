@@ -2,16 +2,16 @@
 
 using namespace webrtc::session;
 
-void PeerSession::start(::rtc::Configuration config) {
+void PeerSession::start() {
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (isClosed_) return;
-
+    if (rtcPeer_) return;
     rtcPeer_ = std::make_shared<rtc::RtcPeer>();
 
     setCallbacks();
 
-    rtcPeer_->start(config);
+    rtcPeer_->start();
     state_ = signaling::ConnectionState::New;
 }
 

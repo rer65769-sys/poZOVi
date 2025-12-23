@@ -33,6 +33,7 @@ private:
     void handleRemoteDescription(const webrtc::SignalingMessage& message);
     void handleIceCandidate(const webrtc::SignalingMessage& message);
     void handleStateChange(const webrtc::SignalingMessage& message);
+    void createPeerSession(uint32_t id);
     template<typename Fn> void withSession(uint32_t sessionId, Fn&& fn);
 };
 

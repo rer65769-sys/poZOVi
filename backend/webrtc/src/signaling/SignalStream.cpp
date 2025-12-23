@@ -65,7 +65,18 @@ void SignalStream::handleIceCandidate(const webrtc::SignalingMessage& message) {
     );
 }
 
+void SignalStream::createPeerSession(uint32_t id) {
+    auto weakSelf = weak_from_this();
+    dispatcher_.post([weakSelf, id]() {
+        if (auto self = weakSelf.lock())
+            self->sessionManager_.createSession(id);
+    });
+}
+
 void SignalStream::handleStateChange(const webrtc::SignalingMessage& message) {
+    if (message.state().state() == webrtc::ConnectionState::NEW)
+        return createPeerSession(message.session_id());
+    
     auto state = static_cast<signaling::ConnectionState>(message.state().state());
     withSession(message.session_id(),
         [message](const std::shared_ptr<session::PeerSession>& session) {

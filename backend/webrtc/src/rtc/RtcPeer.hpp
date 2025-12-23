@@ -12,7 +12,7 @@ class RtcPeer {
 public:
     RtcPeer() = default;
     ~RtcPeer() { close(); };
-    void start(::rtc::Configuration config);
+    void start();
     void close();
     void setRemoteDescription(const signaling::Description& desc);
     void addRemoteIceCandidate(const signaling::IceCandidate& candidate);
